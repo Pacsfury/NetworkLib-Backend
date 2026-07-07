@@ -40,5 +40,5 @@ A **Signal** is an asynchronous message pushed instantly to the client, triggeri
 **Execution Flow:**
 1. **Client B** sends: `SUB pos_x`
 2. **Client A** sends: `SET pos_x 10`
-3. **Server** broadcasts to Client B: `#subscribed_var_changed pos_x`
+3. **Server** broadcasts to Client B: `#subscribed_var_changed pos_x 10`
 4. **Client B** automatically updates the game state.

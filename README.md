@@ -15,6 +15,15 @@ New commands and functionalities are under active development. The current alpha
 * `SET <name> <value>`: Initializes or updates a variable state.
 * `GET <name>`: Retrieves and returns the specified variable's value.
 
+## Repository Structure
+Main/
+| README.md
+| go.mod
+| client.go      => basic test for the server, base for real clients
+| defs.go        => global variables definition
+| main.go        => main file, calls and initialitzations
+| manager.go     => receives and sends values
+
 ## Roadmap & Future Features
 
 * `CONST <name> <value>`: Declares an immutable, read-only constant.

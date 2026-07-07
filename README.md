@@ -7,7 +7,7 @@ The core server routing infrastructure for the NetworkLib ecosystem.
 This backend processes incoming client messages, manages state, and routes data back to connected nodes based on the requested commands.
 
 ## Purpose
-NetworkLib provides an ultra-simple, direct, and lightweight way to build multiplayer games or networked software using a single, unified configuration file.
+NetworkLib provides an ultra-simple, direct, and lightweight way to build multiplayer games or networked software using a single, unified file right in your directory.
 
 ## Current Commands (Alpha)
 New commands and functionalities are under active development. The current alpha version supports:

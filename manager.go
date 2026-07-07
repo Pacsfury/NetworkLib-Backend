@@ -45,6 +45,7 @@ func listen(w http.ResponseWriter, r *http.Request) {
 
 	default:
 		http.Error(w, "Unknown command", http.StatusBadRequest)
+		fmt.Println(command)
 	}
 
 	

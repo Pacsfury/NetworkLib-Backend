@@ -31,6 +31,8 @@ Main/
 * `SUB <name>`: Subscribes a client to receive real-time notifications whenever the target variable changes.
 * `SIGNAL <value>`: Broadcasts an immediate event notification to all connected clients.
 
+In future beta and final versions, text will be automatically transformed to opcodes for performance.
+
 ### Understanding Signals
 A **Signal** is an asynchronous message pushed instantly to the client, triggering a predefined callback or action upon arrival. Signals can optionally carry arguments.
 

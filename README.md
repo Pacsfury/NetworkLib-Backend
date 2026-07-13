@@ -16,6 +16,7 @@ New commands and functionalities are under active development. The current alpha
 * `GET <name>`: Retrieves and returns the specified variable's value.
 
 ## Repository Structure
+```
 Main/
 | README.md
 | go.mod
@@ -23,6 +24,7 @@ Main/
 | defs.go        => global variables definition
 | main.go        => main file, calls and initialitzations
 | manager.go     => receives and sends values
+```
 
 ## Roadmap & Future Features
 

@@ -5,11 +5,12 @@ import (
 	"net/http"
 )
 
-
 func main() {
 	http.HandleFunc("/", listen)
 
 	fmt.Println("Server running on :8080...")
-	go http.ListenAndServe(":8080", nil)
-	test()
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		fmt.Println("Server error:", err)
+	}
 }

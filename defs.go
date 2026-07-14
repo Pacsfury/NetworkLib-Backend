@@ -1,6 +1,9 @@
 package main
 
-import "sync"
+import (
+	"sync" 
+	"net"
+)
 
 type variable struct {
 	name    string
@@ -9,7 +12,15 @@ type variable struct {
 	isconst bool
 }
 
+type connection struct {
+	conn            net.Conn
+	subscriptions   map[string]variable
+	uid             string
+}
+
 var (
 	vals  = make(map[string]variable)
 	mutex sync.RWMutex
+
+	connections = make(map[net.Conn]connection)
 )

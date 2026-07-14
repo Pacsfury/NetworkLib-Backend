@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"github.com/google/uuid"
 )
 
 func handleConn(conn net.Conn) {
@@ -13,6 +14,15 @@ func handleConn(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 
 	for {
+		_, ok := connections[conn]
+		if !ok {
+			connections[conn] = connection {
+				conn: conn,
+				subscriptions: make(map[string]variable),
+				uid: uuid.New().String(),
+			}
+		}
+
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			return 
@@ -108,6 +118,12 @@ func handleConn(conn net.Conn) {
 			}
 			mutex.Unlock()
 			fmt.Fprintln(conn, "OK")
+		
+		case "SIGNAL":
+			for connect, _ := range connections {
+				connect.Write([]byte(ops[1]))
+				connect.Close()
+			}
 
 		default:
 			fmt.Fprintln(conn, "ERROR Unknown command")

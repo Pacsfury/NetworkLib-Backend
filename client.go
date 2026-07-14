@@ -64,4 +64,10 @@ func test() {
 	respGET7, _ := reader.ReadString('\n')
 	fmt.Println("[Client got from server - GET]:")
 	fmt.Println(respGET7)
+
+	// 7. Test SIGNAL
+	fmt.Fprintln(conn, "SIGNAL #er")
+	respGET8, _ := reader.ReadString('\n')
+	fmt.Println("[Client got from server - SIGNAL]:")
+	fmt.Println(respGET8)
 }

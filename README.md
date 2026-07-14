@@ -14,6 +14,8 @@ New commands and functionalities are under active development. The current alpha
 
 * `SET <name> <value>`: Initializes or updates a variable state.
 * `GET <name>`: Retrieves and returns the specified variable's value.
+* `CONST <name> <value>`: Declares an immutable, read-only constant.
+* `TEMP <name> <value>`: Creates a temporary variable that self-destructs after the first `GET` request.
 
 ## Repository Structure
 Main/
@@ -26,8 +28,6 @@ Main/
 
 ## Roadmap & Future Features
 
-* `CONST <name> <value>`: Declares an immutable, read-only constant.
-* `TEMP <name> <value>`: Creates a temporary variable that self-destructs after the first `GET` request.
 * `SUB <name>`: Subscribes a client to receive real-time notifications whenever the target variable changes.
 * `SIGNAL <value>`: Broadcasts an immediate event notification to all connected clients.
 

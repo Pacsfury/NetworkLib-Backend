@@ -1,57 +1,117 @@
 package main
 
 import (
-	"net/http"
-	"io"
+	"bufio"
 	"fmt"
+	"net"
 	"strings"
 )
 
-func listen(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+func handleConn(conn net.Conn) {
+	defer conn.Close()
 
-	bytes, _ := io.ReadAll(r.Body)
-	fmt.Println("Received: ", string(bytes))
+	reader := bufio.NewReader(conn)
 
-	recstr := strings.TrimSpace(string(bytes))
-
-	ops := strings.Split(recstr, " ")
-
-	command := ops[0]
-
-	switch command {
-	case "SET":
-		if len(ops) < 3 {
-			http.Error(w, "Missing value for SET", http.StatusBadRequest)
-			return
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return 
 		}
 
-		mutex.Lock()
-		vals[ops[1]] = ops[2]
-		mutex.Unlock()
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, "OK")
-
-	case "GET":
-		mutex.RLock()
-		val, exists := vals[ops[1]]
-		mutex.RUnlock()
-
-		if !exists {
-			http.Error(w, "Key not found", http.StatusNotFound)
-			return
+		recstr := strings.TrimSpace(line)
+		if recstr == "" {
+			continue
 		}
-		sendBinary(w, []byte(val))
 
-	default:
-		http.Error(w, "Unknown command", http.StatusBadRequest)
-		fmt.Println(command)
+		fmt.Println("Received: ", recstr)
+
+		ops := strings.Split(recstr, " ")
+		command := ops[0]
+
+		switch command {
+		case "SET":
+			if len(ops) < 3 {
+				fmt.Fprintln(conn, "ERROR Missing value for SET")
+				continue
+			}
+
+			mutex.Lock()
+			if current, exists := vals[ops[1]]; exists && current.isconst {
+				fmt.Fprintln(conn, "CONST var can't change")
+				mutex.Unlock() 
+				continue
+			}
+
+			vals[ops[1]] = variable{
+				name:    ops[1],
+				value:   ops[2],
+				istemp:  false,
+				isconst: false,
+			}
+			mutex.Unlock()
+			fmt.Fprintln(conn, "OK")
+
+		case "GET":
+			if len(ops) < 2 {
+				fmt.Fprintln(conn, "ERROR Missing key for GET")
+				continue
+			}
+
+			mutex.RLock()
+			val, exists := vals[ops[1]]
+			mutex.RUnlock()
+
+			if !exists {
+				fmt.Fprintln(conn, "ERROR Key not found")
+				continue
+			}
+
+			if val.istemp {
+				mutex.Lock()
+				if current, encorat := vals[ops[1]]; encorat && current.istemp {
+					fmt.Println("Deleting TEMP variable...")
+					delete(vals, ops[1])
+				}
+				mutex.Unlock()
+			}
+
+			fmt.Fprintln(conn, val.value)
+
+		case "TEMP":
+			if len(ops) < 3 {
+				fmt.Fprintln(conn, "ERROR Missing value for SET")
+				continue
+			}
+
+			mutex.Lock()
+			vals[ops[1]] = variable{
+				name:    ops[1],
+				value:   ops[2],
+				istemp:  true,
+				isconst: false,
+			}
+			mutex.Unlock()
+			fmt.Fprintln(conn, "OK")
+
+		case "CONST":
+			if len(ops) < 3 {
+				fmt.Fprintln(conn, "ERROR Missing value for SET")
+				continue
+			}
+
+			mutex.Lock()
+			vals[ops[1]] = variable{
+				name:    ops[1],
+				value:   ops[2],
+				istemp:  false,
+				isconst: true,
+			}
+			mutex.Unlock()
+			fmt.Fprintln(conn, "OK")
+
+		default:
+			fmt.Fprintln(conn, "ERROR Unknown command")
+			fmt.Println(command)
+		}
 	}
-
-	
-}
-
-func sendBinary(w http.ResponseWriter, data []byte) {
-	w.Write(data)
-	fmt.Println("Sent.")
 }

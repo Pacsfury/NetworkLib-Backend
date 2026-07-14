@@ -2,15 +2,26 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	"net"
 )
 
-func main() {
-	http.HandleFunc("/", listen)
 
-	fmt.Println("Server running on :8080...")
-	err := http.ListenAndServe(":8080", nil)
+func main() {
+	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		fmt.Println("Server error:", err)
+		return
+	}
+	defer ln.Close()
+
+	fmt.Println("Server running on :8080...")
+	go test()
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			fmt.Println("Accept error:", err)
+			continue
+		}
+		go handleConn(conn)
 	}
 }

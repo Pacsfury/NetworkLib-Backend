@@ -30,6 +30,10 @@ Main/
 | manager.go     => receives and sends values
 ```
 
+## Current Supported Frontend Languages
+_Find this and more at [github.com/Pacsfury/NetworkLib-Clients](github.com/Pacsfury/NetworkLib-Clients)_
+- **Lua**: Lua is the first language receiving support
+
 ## Roadmap & Future Features
 
 In future beta and final versions, text will be automatically transformed to opcodes for performance.

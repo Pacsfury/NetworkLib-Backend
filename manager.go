@@ -4,19 +4,20 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+
 	"github.com/google/uuid"
 )
 
-// DEL is the field/record delimiter used to separate ascii-encoded
-// arguments in both directions: [opcode][arg1][DEL][arg2][DEL]...
+// DEL separates individual ascii-encoded args: [opcode][arg1][DEL][arg2][DEL]...
 const DEL byte = 0x1F
 
-// send writes a raw byte message terminated with DEL.
+// END terminates a variable-length argument list (used by SIGNAL).
+const END byte = 0x00
+
 func send(conn net.Conn, msg string) {
 	conn.Write(append([]byte(msg), DEL))
 }
 
-// sendf is a convenience wrapper for formatted messages.
 func sendf(conn net.Conn, format string, a ...interface{}) {
 	send(conn, fmt.Sprintf(format, a...))
 }
@@ -30,15 +31,39 @@ func readArg(reader *bufio.Reader) (string, error) {
 	return string(data[:len(data)-1]), nil
 }
 
-// argCountFor returns how many DEL-delimited arguments follow a given opcode.
-func argCountFor(opcode byte) int {
+// readVarArgs reads DEL-terminated fields until it hits an END marker byte.
+func readVarArgs(reader *bufio.Reader) ([]string, error) {
+	args := make([]string, 0)
+	for {
+		peek, err := reader.Peek(1)
+		if err != nil {
+			return nil, err
+		}
+		if peek[0] == END {
+			_, err := reader.ReadByte() // consume END
+			if err != nil {
+				return nil, err
+			}
+			return args, nil
+		}
+		arg, err := readArg(reader)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, arg)
+	}
+}
+
+// argCountFor returns (count, ok) for fixed-arity opcodes.
+// SIGNAL is handled separately since it's variable-arity.
+func argCountFor(opcode byte) (int, bool) {
 	switch opcode {
 	case SET, TEMP, CONST:
-		return 2
-	case GET, SIGNAL, SUB:
-		return 1
+		return 2, true
+	case GET, SUB:
+		return 1, true
 	default:
-		return 0
+		return 0, false
 	}
 }
 
@@ -66,26 +91,28 @@ func handleConn(conn net.Conn) {
 			return
 		}
 
-		argCount := argCountFor(opcode)
-		if argCount == 0 && opcode != SIGNAL {
-			// unknown opcode with no defined arg count
-			if _, known := map[byte]bool{SET: true, GET: true, TEMP: true, CONST: true, SIGNAL: true, SUB: true}[opcode]; !known {
-				send(conn, "ERROR Unknown command")
-				continue
-			}
-		}
+		var args []string
 
-		args := make([]string, 0, argCount)
-		ok := true
-		for i := 0; i < argCount; i++ {
-			arg, err := readArg(reader)
+		if opcode == SIGNAL {
+			args, err = readVarArgs(reader)
 			if err != nil {
 				return
 			}
-			args = append(args, arg)
-		}
-		if !ok {
-			continue
+		} else {
+			count, known := argCountFor(opcode)
+			if !known {
+				send(conn, "ERROR Unknown command")
+				fmt.Printf("Unknown opcode: 0x%X\n", opcode)
+				continue
+			}
+			args = make([]string, 0, count)
+			for i := 0; i < count; i++ {
+				arg, err := readArg(reader)
+				if err != nil {
+					return
+				}
+				args = append(args, arg)
+			}
 		}
 
 		fmt.Printf("Received: opcode=0x%X args=%v\n", opcode, args)
@@ -169,7 +196,13 @@ func handleConn(conn net.Conn) {
 			send(conn, "OK")
 
 		case SIGNAL:
-			msg := args[0]
+			msg := ""
+			for i, a := range args {
+				if i > 0 {
+					msg += " "
+				}
+				msg += a
+			}
 
 			mutex.Lock()
 			for connect := range connections {
@@ -190,10 +223,6 @@ func handleConn(conn net.Conn) {
 				send(conn, "ERROR Connection not registered")
 			}
 			mutex.Unlock()
-
-		default:
-			send(conn, "ERROR Unknown command")
-			fmt.Printf("Unknown opcode: 0x%X\n", opcode)
 		}
 	}
 }

@@ -1,15 +1,10 @@
 package main
 
-/* 
-Example client for tests.
-This client tests all the implemented operations.
-You can use this as an example client for creating you own clients in the future.
-*/
-
 import (
 	"bufio"
 	"fmt"
 	"net"
+	"time"
 )
 
 func test() {
@@ -22,52 +17,54 @@ func test() {
 	}
 	defer conn.Close()
 
-	reader := bufio.NewReader(conn)
+	go func() {
+		reader := bufio.NewReader(conn)
+		for {
+			msg, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println("[Client] connection closed because this error:", err)
+				return
+			}
+			fmt.Print("[Server]: ", msg)
+		}
+	}()
 
 	// 1. Test SET
 	fmt.Fprintln(conn, "SET a b")
-	respSET, _ := reader.ReadString('\n')
-	fmt.Println("[Client got from server - SET]:")
-	fmt.Println(respSET)
+	time.Sleep(50 * time.Millisecond)
 
 	// 2. Test GET
 	fmt.Fprintln(conn, "GET a")
-	respGET, _ := reader.ReadString('\n')
-	fmt.Println("[Client got from server - GET]:")
-	fmt.Println(respGET)
+	time.Sleep(50 * time.Millisecond)
 
 	// 3. Test TEMP
 	fmt.Fprintln(conn, "TEMP er b")
-	respSET3, _ := reader.ReadString('\n')
-	fmt.Println("[Client got from server - TEMP]:")
-	fmt.Println(respSET3)
+	time.Sleep(50 * time.Millisecond)
 
 	// 4. Test CONST
 	fmt.Fprintln(conn, "CONST ar tr")
-	respGET4, _ := reader.ReadString('\n')
-	fmt.Println("[Client got from server - CONST]:")
-	fmt.Println(respGET4)
+	time.Sleep(50 * time.Millisecond)
 
 	// 5. Test edit CONST
 	fmt.Fprintln(conn, "SET ar trdf")
-	respGET5, _ := reader.ReadString('\n')
-	fmt.Println("[Client got from server - SET]:")
-	fmt.Println(respGET5)
+	time.Sleep(50 * time.Millisecond)
 
 	// 6. Double GET at TEMP
 	fmt.Fprintln(conn, "GET er")
-	respGET6, _ := reader.ReadString('\n')
-	fmt.Println("[Client got from server - GET]:")
-	fmt.Println(respGET6)
+	time.Sleep(50 * time.Millisecond)
 
 	fmt.Fprintln(conn, "GET er")
-	respGET7, _ := reader.ReadString('\n')
-	fmt.Println("[Client got from server - GET]:")
-	fmt.Println(respGET7)
+	time.Sleep(50 * time.Millisecond)
 
 	// 7. Test SIGNAL
 	fmt.Fprintln(conn, "SIGNAL #er")
-	respGET8, _ := reader.ReadString('\n')
-	fmt.Println("[Client got from server - SIGNAL]:")
-	fmt.Println(respGET8)
+
+	// 8. Test SUB
+	fmt.Fprintln(conn, "SET pos_x 10")
+	time.Sleep(1000 * time.Millisecond)
+
+	fmt.Fprintln(conn, "SET pos_x 10")
+	time.Sleep(1000 * time.Millisecond)
+	
+	time.Sleep(100 * time.Millisecond) 
 }

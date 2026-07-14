@@ -17,7 +17,7 @@ New commands and functionalities are under active development. The current alpha
 * `CONST <name> <value>`: Declares an immutable, read-only constant.
 * `TEMP <name> <value>`: Creates a temporary variable that self-destructs after the first `GET` request.
 * `SIGNAL <value>`: Broadcasts an immediate event notification to all connected clients.
-> **About Signal**: Has not been tested with more clients. May not work.
+* `SUB <name>`: Subscribes a client to receive real-time notifications whenever the target variable changes.
 
 ## Repository Structure
 ```
@@ -31,8 +31,6 @@ Main/
 ```
 
 ## Roadmap & Future Features
-
-* `SUB <name>`: Subscribes a client to receive real-time notifications whenever the target variable changes.
 
 In future beta and final versions, text will be automatically transformed to opcodes for performance.
 

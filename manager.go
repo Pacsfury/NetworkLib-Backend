@@ -9,20 +9,24 @@ import (
 )
 
 func handleConn(conn net.Conn) {
-	defer conn.Close()
+	mutex.Lock()
+	connections[conn] = connection{
+		conn:          conn,
+		subscriptions: make(map[string]variable),
+		uid:           uuid.New().String(),
+	}
+	mutex.Unlock()
+
+	defer func() {
+		mutex.Lock()
+		delete(connections, conn)
+		mutex.Unlock()
+		conn.Close()
+	}()
 
 	reader := bufio.NewReader(conn)
 
 	for {
-		_, ok := connections[conn]
-		if !ok {
-			connections[conn] = connection {
-				conn: conn,
-				subscriptions: make(map[string]variable),
-				uid: uuid.New().String(),
-			}
-		}
-
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			return 
@@ -44,19 +48,27 @@ func handleConn(conn net.Conn) {
 				fmt.Fprintln(conn, "ERROR Missing value for SET")
 				continue
 			}
+			varName := ops[1]
+			varValue := ops[2]
 
 			mutex.Lock()
-			if current, exists := vals[ops[1]]; exists && current.isconst {
+			if current, exists := vals[varName]; exists && current.isconst {
 				fmt.Fprintln(conn, "CONST var can't change")
 				mutex.Unlock() 
 				continue
 			}
 
-			vals[ops[1]] = variable{
-				name:    ops[1],
-				value:   ops[2],
+			vals[varName] = variable{
+				name:    varName,
+				value:   varValue,
 				istemp:  false,
 				isconst: false,
+			}
+
+			for connect, clientCtx := range connections {
+				if _, isSubscribed := clientCtx.subscriptions[varName]; isSubscribed {
+					fmt.Fprintf(connect, "#subscribed_var_changed %s %s\n", varName, varValue)
+				}
 			}
 			mutex.Unlock()
 			fmt.Fprintln(conn, "OK")
@@ -120,10 +132,34 @@ func handleConn(conn net.Conn) {
 			fmt.Fprintln(conn, "OK")
 		
 		case "SIGNAL":
-			for connect, _ := range connections {
-				connect.Write([]byte(ops[1]))
-				connect.Close()
+			if len(ops) < 2 {
+				fmt.Fprintln(conn, "ERROR Missing value for SIGNAL")
+				continue
 			}
+
+			mutex.Lock()
+			for connect := range connections {
+				fmt.Fprintln(connect, ops[1]) 
+			}
+			mutex.Unlock()
+
+		case "SUB":
+			if len(ops) < 2 {
+				fmt.Fprintln(conn, "ERROR Missing variable name for SUB")
+				continue
+			}
+			variableToSub := ops[1]
+
+			mutex.Lock()
+			if clientConn, exists := connections[conn]; exists {
+				clientConn.subscriptions[variableToSub] = variable{
+					name: variableToSub,
+				}
+				fmt.Fprintln(conn, "OK SUB")
+			} else {
+				fmt.Fprintln(conn, "ERROR Connection not registered")
+			}
+			mutex.Unlock()
 
 		default:
 			fmt.Fprintln(conn, "ERROR Unknown command")

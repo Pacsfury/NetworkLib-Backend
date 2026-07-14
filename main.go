@@ -16,6 +16,7 @@ func main() {
 
 	fmt.Println("Server running on :8080...")
 	go test()
+	go test2()
 	for {
 		conn, err := ln.Accept()
 		if err != nil {

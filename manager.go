@@ -4,9 +4,43 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"strings"
 	"github.com/google/uuid"
 )
+
+// DEL is the field/record delimiter used to separate ascii-encoded
+// arguments in both directions: [opcode][arg1][DEL][arg2][DEL]...
+const DEL byte = 0x1F
+
+// send writes a raw byte message terminated with DEL.
+func send(conn net.Conn, msg string) {
+	conn.Write(append([]byte(msg), DEL))
+}
+
+// sendf is a convenience wrapper for formatted messages.
+func sendf(conn net.Conn, format string, a ...interface{}) {
+	send(conn, fmt.Sprintf(format, a...))
+}
+
+// readArg reads a single DEL-terminated field and strips the delimiter.
+func readArg(reader *bufio.Reader) (string, error) {
+	data, err := reader.ReadBytes(DEL)
+	if err != nil {
+		return "", err
+	}
+	return string(data[:len(data)-1]), nil
+}
+
+// argCountFor returns how many DEL-delimited arguments follow a given opcode.
+func argCountFor(opcode byte) int {
+	switch opcode {
+	case SET, TEMP, CONST:
+		return 2
+	case GET, SIGNAL, SUB:
+		return 1
+	default:
+		return 0
+	}
+}
 
 func handleConn(conn net.Conn) {
 	mutex.Lock()
@@ -27,34 +61,44 @@ func handleConn(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 
 	for {
-		line, err := reader.ReadString('\n')
+		opcode, err := reader.ReadByte()
 		if err != nil {
-			return 
+			return
 		}
 
-		recstr := strings.TrimSpace(line)
-		if recstr == "" {
+		argCount := argCountFor(opcode)
+		if argCount == 0 && opcode != SIGNAL {
+			// unknown opcode with no defined arg count
+			if _, known := map[byte]bool{SET: true, GET: true, TEMP: true, CONST: true, SIGNAL: true, SUB: true}[opcode]; !known {
+				send(conn, "ERROR Unknown command")
+				continue
+			}
+		}
+
+		args := make([]string, 0, argCount)
+		ok := true
+		for i := 0; i < argCount; i++ {
+			arg, err := readArg(reader)
+			if err != nil {
+				return
+			}
+			args = append(args, arg)
+		}
+		if !ok {
 			continue
 		}
 
-		fmt.Println("Received: ", recstr)
+		fmt.Printf("Received: opcode=0x%X args=%v\n", opcode, args)
 
-		ops := strings.Split(recstr, " ")
-		command := ops[0]
-
-		switch command {
-		case "SET":
-			if len(ops) < 3 {
-				fmt.Fprintln(conn, "ERROR Missing value for SET")
-				continue
-			}
-			varName := ops[1]
-			varValue := ops[2]
+		switch opcode {
+		case SET:
+			varName := args[0]
+			varValue := args[1]
 
 			mutex.Lock()
 			if current, exists := vals[varName]; exists && current.isconst {
-				fmt.Fprintln(conn, "CONST var can't change")
-				mutex.Unlock() 
+				send(conn, "CONST var can't change")
+				mutex.Unlock()
 				continue
 			}
 
@@ -67,103 +111,89 @@ func handleConn(conn net.Conn) {
 
 			for connect, clientCtx := range connections {
 				if _, isSubscribed := clientCtx.subscriptions[varName]; isSubscribed {
-					fmt.Fprintf(connect, "#subscribed_var_changed %s %s\n", varName, varValue)
+					sendf(connect, "#subscribed_var_changed %s %s", varName, varValue)
 				}
 			}
 			mutex.Unlock()
-			fmt.Fprintln(conn, "OK")
+			send(conn, "OK")
 
-		case "GET":
-			if len(ops) < 2 {
-				fmt.Fprintln(conn, "ERROR Missing key for GET")
-				continue
-			}
+		case GET:
+			key := args[0]
 
 			mutex.RLock()
-			val, exists := vals[ops[1]]
+			val, exists := vals[key]
 			mutex.RUnlock()
 
 			if !exists {
-				fmt.Fprintln(conn, "ERROR Key not found")
+				send(conn, "ERROR Key not found")
 				continue
 			}
 
 			if val.istemp {
 				mutex.Lock()
-				if current, encorat := vals[ops[1]]; encorat && current.istemp {
+				if current, ok := vals[key]; ok && current.istemp {
 					fmt.Println("Deleting TEMP variable...")
-					delete(vals, ops[1])
+					delete(vals, key)
 				}
 				mutex.Unlock()
 			}
 
-			fmt.Fprintln(conn, val.value)
+			send(conn, val.value)
 
-		case "TEMP":
-			if len(ops) < 3 {
-				fmt.Fprintln(conn, "ERROR Missing value for SET")
-				continue
-			}
+		case TEMP:
+			varName := args[0]
+			varValue := args[1]
 
 			mutex.Lock()
-			vals[ops[1]] = variable{
-				name:    ops[1],
-				value:   ops[2],
+			vals[varName] = variable{
+				name:    varName,
+				value:   varValue,
 				istemp:  true,
 				isconst: false,
 			}
 			mutex.Unlock()
-			fmt.Fprintln(conn, "OK")
+			send(conn, "OK")
 
-		case "CONST":
-			if len(ops) < 3 {
-				fmt.Fprintln(conn, "ERROR Missing value for SET")
-				continue
-			}
+		case CONST:
+			varName := args[0]
+			varValue := args[1]
 
 			mutex.Lock()
-			vals[ops[1]] = variable{
-				name:    ops[1],
-				value:   ops[2],
+			vals[varName] = variable{
+				name:    varName,
+				value:   varValue,
 				istemp:  false,
 				isconst: true,
 			}
 			mutex.Unlock()
-			fmt.Fprintln(conn, "OK")
-		
-		case "SIGNAL":
-			if len(ops) < 2 {
-				fmt.Fprintln(conn, "ERROR Missing value for SIGNAL")
-				continue
-			}
+			send(conn, "OK")
+
+		case SIGNAL:
+			msg := args[0]
 
 			mutex.Lock()
 			for connect := range connections {
-				fmt.Fprintln(connect, ops[1]) 
+				send(connect, msg)
 			}
 			mutex.Unlock()
 
-		case "SUB":
-			if len(ops) < 2 {
-				fmt.Fprintln(conn, "ERROR Missing variable name for SUB")
-				continue
-			}
-			variableToSub := ops[1]
+		case SUB:
+			variableToSub := args[0]
 
 			mutex.Lock()
 			if clientConn, exists := connections[conn]; exists {
 				clientConn.subscriptions[variableToSub] = variable{
 					name: variableToSub,
 				}
-				fmt.Fprintln(conn, "OK SUB")
+				send(conn, "OK SUB")
 			} else {
-				fmt.Fprintln(conn, "ERROR Connection not registered")
+				send(conn, "ERROR Connection not registered")
 			}
 			mutex.Unlock()
 
 		default:
-			fmt.Fprintln(conn, "ERROR Unknown command")
-			fmt.Println(command)
+			send(conn, "ERROR Unknown command")
+			fmt.Printf("Unknown opcode: 0x%X\n", opcode)
 		}
 	}
 }

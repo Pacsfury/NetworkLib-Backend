@@ -24,3 +24,12 @@ var (
 
 	connections = make(map[net.Conn]connection)
 )
+
+const (
+	SET = 0x1
+	GET = 0x2
+	TEMP = 0x3
+	CONST = 0x4
+	SIGNAL = 0x5
+	SUB = 0x6
+)

@@ -7,6 +7,16 @@ import (
 	"time"
 )
 
+// sendCmd writes an opcode followed by its DEL-terminated args.
+func sendCmd(conn net.Conn, opcode byte, args ...string) {
+	msg := []byte{opcode}
+	for _, a := range args {
+		msg = append(msg, []byte(a)...)
+		msg = append(msg, DEL)
+	}
+	conn.Write(msg)
+}
+
 func test() {
 	fmt.Println(" --- Test started  --- ")
 
@@ -20,51 +30,51 @@ func test() {
 	go func() {
 		reader := bufio.NewReader(conn)
 		for {
-			msg, err := reader.ReadString('\n')
+			msg, err := reader.ReadBytes(DEL)
 			if err != nil {
 				fmt.Println("[Client] connection closed because this error:", err)
 				return
 			}
-			fmt.Print("[Server]: ", msg)
+			fmt.Println("[Server]:", string(msg[:len(msg)-1]))
 		}
 	}()
 
 	// 1. Test SET
-	fmt.Fprintln(conn, "SET a b")
+	sendCmd(conn, SET, "a", "b")
 	time.Sleep(50 * time.Millisecond)
 
 	// 2. Test GET
-	fmt.Fprintln(conn, "GET a")
+	sendCmd(conn, GET, "a")
 	time.Sleep(50 * time.Millisecond)
 
 	// 3. Test TEMP
-	fmt.Fprintln(conn, "TEMP er b")
+	sendCmd(conn, TEMP, "er", "b")
 	time.Sleep(50 * time.Millisecond)
 
 	// 4. Test CONST
-	fmt.Fprintln(conn, "CONST ar tr")
+	sendCmd(conn, CONST, "ar", "tr")
 	time.Sleep(50 * time.Millisecond)
 
 	// 5. Test edit CONST
-	fmt.Fprintln(conn, "SET ar trdf")
+	sendCmd(conn, SET, "ar", "trdf")
 	time.Sleep(50 * time.Millisecond)
 
 	// 6. Double GET at TEMP
-	fmt.Fprintln(conn, "GET er")
+	sendCmd(conn, GET, "er")
 	time.Sleep(50 * time.Millisecond)
 
-	fmt.Fprintln(conn, "GET er")
+	sendCmd(conn, GET, "er")
 	time.Sleep(50 * time.Millisecond)
 
 	// 7. Test SIGNAL
-	fmt.Fprintln(conn, "SIGNAL #er")
+	sendCmd(conn, SIGNAL, "#er")
 
 	// 8. Test SUB
-	fmt.Fprintln(conn, "SET pos_x 10")
+	sendCmd(conn, SET, "pos_x", "10")
 	time.Sleep(1000 * time.Millisecond)
 
-	fmt.Fprintln(conn, "SET pos_x 10")
+	sendCmd(conn, SET, "pos_x", "10")
 	time.Sleep(1000 * time.Millisecond)
-	
-	time.Sleep(100 * time.Millisecond) 
+
+	time.Sleep(100 * time.Millisecond)
 }

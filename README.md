@@ -18,6 +18,7 @@ New commands and functionalities are under active development. The current alpha
 * `TEMP <name> <value>`: Creates a temporary variable that self-destructs after the first `GET` request.
 
 ## Repository Structure
+```
 Main/
 | README.md
 | go.mod
@@ -25,6 +26,7 @@ Main/
 | defs.go        => global variables definition
 | main.go        => main file, calls and initialitzations
 | manager.go     => receives and sends values
+```
 
 ## Roadmap & Future Features
 

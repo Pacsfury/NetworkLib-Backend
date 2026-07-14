@@ -25,10 +25,15 @@ Main/
 | README.md
 | go.mod
 | client.go      => basic test for the server, base for real clients
+| client2.go     => anither client for testing basic interaction
 | defs.go        => global variables definition
 | main.go        => main file, calls and initialitzations
 | manager.go     => receives and sends values
 ```
+
+## Current Supported Frontend Languages
+_Find this and more at [github.com/Pacsfury/NetworkLib-Clients](github.com/Pacsfury/NetworkLib-Clients)_
+- **Lua**: Lua is the first language receiving support
 
 ## Roadmap & Future Features
 

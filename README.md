@@ -1,7 +1,8 @@
 # NetworkLib - Backend
 The core server routing infrastructure for the NetworkLib ecosystem.
 
-<sub>Reference version: A0.1.0</sub>
+<sub>Reference version: A0.1.0 (use this for matching the client)</sub>
+
 ---
 
 ## Overview

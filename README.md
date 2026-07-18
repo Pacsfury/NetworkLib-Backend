@@ -21,13 +21,15 @@ New commands and functionalities are under active development. The current alpha
 * `SIGNAL <value>`: Broadcasts an immediate event notification to all connected clients.
 * `SUB <name>`: Subscribes a client to receive real-time notifications whenever the target variable changes.
 
+_When sent, and received, are transformed to opcodes for reducing bandwidth (coming soon with std signals)_
+
 ## Repository Structure
 ```
 Main/
 | README.md
 | go.mod
 | client.go      => basic test for the server, base for real clients
-| client2.go     => anither client for testing basic interaction
+| client2.go     => another client for testing basic interaction
 | defs.go        => global variables definition
 | main.go        => main file, calls and initialitzations
 | manager.go     => receives and sends values
@@ -39,7 +41,7 @@ _Find this and more at [github.com/Pacsfury/NetworkLib-Clients](github.com/Pacsf
 
 ## Roadmap & Future Features
 
-In future beta and final versions, text will be automatically transformed to opcodes for performance.
+Stability and optimitzations.
 
 ### Understanding Signals
 A **Signal** is an asynchronous message pushed instantly to the client, triggering a predefined callback or action upon arrival. Signals can optionally carry arguments.

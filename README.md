@@ -11,6 +11,8 @@ This backend processes incoming client messages, manages state, and routes data 
 ## Purpose
 NetworkLib provides an ultra-simple, direct, and lightweight way to build multiplayer games or networked software using a single, unified file right in your directory.
 
+Right now, this can be used for real projects. For instance, check my repository "RubidungLua", where I use this backend for the multiplayer games.
+
 ## Current Commands (Alpha)
 New commands and functionalities are under active development. The current alpha version supports:
 
@@ -21,7 +23,7 @@ New commands and functionalities are under active development. The current alpha
 * `SIGNAL <value>`: Broadcasts an immediate event notification to all connected clients.
 * `SUB <name>`: Subscribes a client to receive real-time notifications whenever the target variable changes.
 
-_When sent, and received, are transformed to opcodes for reducing bandwidth (coming soon with std signals)_
+_When sent and received, are transformed to opcodes for reducing bandwidth (soon the std signals will also be transformed)_
 
 ## Repository Structure
 ```
@@ -40,6 +42,8 @@ _Find this and more at [github.com/Pacsfury/NetworkLib-Clients](github.com/Pacsf
 - **Lua**: Lua is the first language receiving support
 
 ## Roadmap & Future Features
+
+Create a function `nl:on_signal_received(signal, args)`, that makes an easier way to interact with signals instead of matching the server responses.
 
 Stability and optimitzations.
 

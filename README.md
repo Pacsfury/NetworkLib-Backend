@@ -40,7 +40,8 @@ Main/
 ## Current Supported Frontend Languages
 _Find this and more at [github.com/Pacsfury/NetworkLib-Clients](github.com/Pacsfury/NetworkLib-Clients)_
 - **Lua**: Lua is the first language receiving support
-
+- **RL**: A small, cool and growing programming lanugage by [Mohamed Gonem](https://github.com/MohamedGonem)
+  
 ## Roadmap & Future Features
 
 Create a function `nl:on_signal_received(signal, args)`, that makes an easier way to interact with signals instead of matching the server responses.

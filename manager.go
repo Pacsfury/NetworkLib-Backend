@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-
-	"github.com/google/uuid"
 )
 
 // DEL separates individual ascii-encoded args: [opcode][arg1][DEL][arg2][DEL]...
@@ -72,7 +70,6 @@ func handleConn(conn net.Conn) {
 	connections[conn] = connection{
 		conn:          conn,
 		subscriptions: make(map[string]variable),
-		uid:           uuid.New().String(),
 	}
 	mutex.Unlock()
 
